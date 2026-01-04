@@ -47,16 +47,16 @@ spec:
           {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: {{ .Values.service.maintmgr.name }}
-              containerPort: {{ .Values.service.maintmgr.port }}
+            - name: {{ .Values.service.rmtaccessmgr.name  }}
+              containerPort: {{ .Values.service.rmtaccessmgr.port }}
               protocol: TCP
             {{- if .Values.metrics.enabled }}
             - name: metrics
               containerPort: {{ .Values.metrics.port }}
               protocol: TCP
             {{- end }}
-          {{- if .Values.mimaintmgr.oamservaddr }}
-           {{- $oamservport:= (splitList ":" .Values.mimaintmgr.oamservaddr) | last | atoi }}
+          {{- if .Values.rmtaccessmgr.oamservaddr }}
+           {{- $oamservport:= (splitList ":" .Values.rmtaccessmgr.oamservaddr) | last | atoi }}
           livenessProbe:
             grpc:
               port: {{ $oamservport }}
@@ -71,10 +71,10 @@ spec:
           {{- end }}
           args:
           - -inventoryAddress={{ .Values.inventory.addr }}:{{ .Values.inventory.port }}
-          - -oamServerAddress={{ .Values.mimaintmgr.oamservaddr }}
-          {{- if .Values.mimaintmgr.enableTracing }}
-          - -enableTracing={{ .Values.mimaintmgr.enableTracing }}
-          - -traceURL={{ .Values.mimaintmgr.traceURL }}
+          - -oamServerAddress={{ .Values.rmtaccessmgr.oamservaddr }}
+          {{- if .Values.rmtaccessmgr.enableTracing }}
+          - -enableTracing={{ .Values.rmtaccessmgr.enableTracing }}
+          - -traceURL={{ .Values.rmtaccessmgr.traceURL }}
           {{- end }}
           {{- if .Values.globalLogLevel }}
           - -globalLogLevel={{ .Values.globalLogLevel }}

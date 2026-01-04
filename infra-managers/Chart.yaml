@@ -36,3 +36,12 @@ dependencies:
     condition: import.attestationstatus-manager.enabled
     version: "0.9.0-dev"
     repository: "file://../attestationstatus-manager"
+  - name: remote-access-manager
+    condition: import.remote-access-manager.enabled
+    version: "0.0.1-dev"
+    repository: "file://../remote-access-manager"
+  - name: remote-access-proxy
+    condition: import.remote-access-proxy.enabled
+    version: "0.0.1-dev"
+    repository: "file://../remote-access-proxy"
+

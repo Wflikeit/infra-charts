@@ -10,9 +10,9 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - name: {{ .Values.service.maintmgr.name }}
-      port: {{ .Values.service.maintmgr.port }}
-      targetPort: {{ .Values.service.maintmgr.port }}
+    - name: {{ .Values.service.rmtaccessmgr.name  }}
+      port: {{ .Values.service.rmtaccessmgr.port }}
+      targetPort: {{ .Values.service.rmtaccessmgr.port }}
       protocol: TCP
   {{- if .Values.metrics.enabled }}
     - name: metrics
@@ -27,19 +27,19 @@ spec:
 apiVersion: {{ .Values.traefikApiGroup }}
 kind: IngressRoute
 metadata:
-  name: "maintmgr-api-grpc-node"
+  name: "rmtaccessmgr-api-grpc-node"
   namespace: {{ .Values.traefikReverseProxy.gatewayNamespace }}
 spec:
   entryPoints: # We listen to requests coming from ports 443
     - websecure
   routes:
-    - match: {{ required "A valid updateNodeMatchHost entry required!" .Values.traefikReverseProxy.host.grpc.name }} && PathPrefix(`/`)
+    - match: {{ required "A valid remoteAccessManagerMatchHost entry required!" .Values.traefikReverseProxy.host.grpc.name }} && PathPrefix(`/`)
       kind: Rule
       middlewares:
         - name: validate-jwt
       services:
         - name: {{ include "remote-access-manager.fullname" . }}
-          port: {{ .Values.service.maintmgr.port }}
+          port: {{ .Values.service.rmtaccessmgr.port }}
           scheme: h2c
           namespace: {{ .Release.Namespace }}
   tls:

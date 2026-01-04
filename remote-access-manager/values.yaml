@@ -15,7 +15,7 @@ global:
 replicaCount: 1
 
 image:
-  repository: infra/maintmgr
+  repository: infra/rmtaccessmgr
   pullPolicy: IfNotPresent
   # Image specific takes precedence
   # registry:
@@ -45,16 +45,16 @@ securityContext:
   capabilities:
     drop:
     - ALL
-  readOnlyRootFilesystem: true //???
-  allowPrivilegeEscalation: false //???
-  runAsNonRoot: true //???
-  runAsUser: 65534 //???
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 65534
 
 service:
   type: ClusterIP
   rmtAccessmgr:
     name: rmtAccessmgr-api
-    port: 50005 // ??
+    port: 50008
 
 metrics:
   enabled: false
@@ -64,7 +64,7 @@ inventory:
   addr: inventory
   port: 50051
 
-mimaintmgr:
+rmtaccessmgr:
   enableTracing: false
   traceURL: "fluent-bit:4318"
   oamservaddr: "0.0.0.0:2379"
@@ -95,19 +95,19 @@ affinity: {}
 globalLogLevel: "info"
 
 # -- traefikReverseProxy defines params for external access to services in a cluster using Traefik reverse proxy.
+# Expose RAM via Traefik (gRPC)
 traefikReverseProxy:
   host:
     grpc:
-      name: "update-node.domain" //???
-
+      name: "remote-access-manager-node.domain"
+  # -- matchRoute defines routing rules (e.g. Host(`http.sample.com`))
+  matchRoute: ""
   # -- enabled is a switch to turn on/off the Traefik reverse proxy resource; Traefik MUST be deployed to orch-gateway ns before enabling it here.
-  enabled: false
+  enabled: true
   # -- gatewayNamespace specifies namespace of Traefik and related resources (e.g. k8s secret or tls option).
   gatewayNamespace: orch-gateway
   # -- secretName is name of k8s secret containing TLS server cert.
   secretName: tls-demo
-  # -- matchRoute defines routing rules (e.g. Host(`http.sample.com`))
-  matchRoute:
   # -- tlsOption is the name of the Traefik option for handling TLS or mTLS connections.
   tlsOption: gateway-tls
 
