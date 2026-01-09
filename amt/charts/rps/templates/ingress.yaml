@@ -49,3 +49,4 @@ spec:
   tls:
     secretName: {{ .Values.traefikReverseProxy.secretName }}
 {{- end }}
+{{/*Przyklad dla Websocket RAP*/}}

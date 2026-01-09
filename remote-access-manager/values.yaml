@@ -99,7 +99,7 @@ globalLogLevel: "info"
 traefikReverseProxy:
   host:
     grpc:
-      name: "remote-access-manager-node.domain"
+      name: "remote-access-node.domain"
   # -- matchRoute defines routing rules (e.g. Host(`http.sample.com`))
   matchRoute: ""
   # -- enabled is a switch to turn on/off the Traefik reverse proxy resource; Traefik MUST be deployed to orch-gateway ns before enabling it here.

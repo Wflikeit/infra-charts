@@ -99,7 +99,7 @@ globalLogLevel: "info"
 traefikReverseProxy:
   host:
     http:
-      name: "remote-access-proxy-node.domain"
+      name: "remote-access-proxy.domain"
 
   enabled: true
   # -- gatewayNamespace specifies namespace of Traefik and related resources (e.g. k8s secret or tls option).
