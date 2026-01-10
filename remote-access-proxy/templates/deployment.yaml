@@ -50,6 +50,9 @@ spec:
             - name: {{ .Values.service.rmtAccessproxy.name }}
               containerPort: {{ .Values.service.rmtAccessproxy.port }}
               protocol: TCP
+            - name: {{ .Values.service.chisel.name }}
+              containerPort: {{ .Values.service.chisel.port }}
+              protocol: TCP
             {{- if .Values.metrics.enabled }}
             - name: metrics
               containerPort: {{ .Values.metrics.port }}

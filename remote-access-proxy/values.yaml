@@ -55,6 +55,9 @@ service:
   rmtAccessproxy:
     name: rmtaccessproxy-api
     port: 8080
+  chisel:
+    name: rap-chisel
+    port: 8082
 
 metrics:
   enabled: false
@@ -100,6 +103,8 @@ traefikReverseProxy:
   host:
     http:
       name: "remote-access-proxy.domain"
+    ws:
+      name: "remote-access-proxy-ws.domain"
 
   enabled: true
   # -- gatewayNamespace specifies namespace of Traefik and related resources (e.g. k8s secret or tls option).
