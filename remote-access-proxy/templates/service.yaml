@@ -6,7 +6,7 @@ kind: Service
 metadata:
   name: {{ include "remote-access-proxy.fullname" . }}
   labels:
-    {{- include "remote-access-proxy.labels" . | nindent 4 }}
+    {{ include "remote-access-proxy.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -18,12 +18,12 @@ spec:
       port: {{ .Values.service.chisel.port }}
       targetPort: {{ .Values.service.chisel.port }}
       protocol: TCP
-  {{- if .Values.metrics.enabled }}
+    {{- if .Values.metrics.enabled }}
     - name: metrics
       port: {{ .Values.metrics.port }}
       targetPort: metrics
       protocol: TCP
-  {{- end }}
+    {{- end }}
   selector:
     {{- include "remote-access-proxy.selectorLabels" . | nindent 4 }}
 ---
@@ -46,7 +46,7 @@ spec:
           port: {{ .Values.service.rmtAccessproxy.port }}
           scheme: http
           namespace: {{ .Release.Namespace }}
-  - match: {{ required "A valid remoteAccessProxyMatchWsHost entry required!" .Values.traefikReverseProxy.host.ws.name }} && PathPrefix(`/`)
+    - match: {{ required "A valid remoteAccessProxyMatchWsHost entry required!" .Values.traefikReverseProxy.host.ws.name }} && PathPrefix(`/`)
       kind: Rule
       services:
         - name: {{ include "remote-access-proxy.fullname" . }}
