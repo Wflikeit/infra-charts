@@ -53,7 +53,7 @@ securityContext:
 service:
   type: ClusterIP
   rmtAccessproxy:
-    name: rmtaccessproxy-api
+    name: rap-api
     port: 8080
   chisel:
     name: rap-chisel

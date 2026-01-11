@@ -53,7 +53,7 @@ securityContext:
 service:
   type: ClusterIP
   rmtaccessmgr:
-    name: rmtaccessmgr-api
+    name: ram-api
     port: 50008
 
 metrics:
