@@ -52,8 +52,8 @@ securityContext:
 
 service:
   type: ClusterIP
-  rmtAccessmgr:
-    name: rmtAccessmgr-api
+  rmtaccessmgr:
+    name: rmtaccessmgr-api
     port: 50008
 
 metrics:
