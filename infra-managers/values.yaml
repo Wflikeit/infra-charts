@@ -23,7 +23,8 @@ import:
     enabled: true
   remote-access-manager:
     enabled: true
-
+  remote-access-proxy:
+    enabled: true
 # Global values overrides
 # global:
 #   registry:
