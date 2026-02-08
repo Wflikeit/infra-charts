@@ -19,6 +19,7 @@ import:
     enabled: true
   amt:
     enabled: true
+
 # Global values overrides
 # global:
 #   registry:
@@ -37,8 +38,4 @@ import:
 # loca-templates-manager:
 
 # amt:
-  # rps:
-
-  # mps:
-
   # dm-manager:
