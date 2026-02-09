@@ -126,6 +126,5 @@ oidc:
     bypass:
 
 serviceArgs:
-  enableAuth: true
   invCacheUuidEnable: true
   invCacheStaleTimeout: 10m
