@@ -1,0 +1,128 @@
+{{/*
+SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+SPDX-License-Identifier: Apache-2.0
+*/}}
+{{- if .Values.bootstrap.tokenSecret.name }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vault-ssh-secrets-engine.fullname" . }}-script
+  labels:
+    {{- include "vault-ssh-secrets-engine.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+data:
+  bootstrap.sh: |
+    #!/usr/bin/env sh
+    set -eu
+    MOUNT="{{ .Values.ssh.mount }}"
+    SIGN_ROLE="{{ .Values.ssh.signRole }}"
+    CERT_MAX_TTL="{{ .Values.ssh.certMaxTtl }}"
+    ALLOWED_USERS='{{ .Values.ssh.allowedUsers }}'
+
+    log() { printf '%s\n' "$*"; }
+
+    i=0
+    while ! vault token lookup >/dev/null 2>&1; do
+      i=$((i + 1))
+      if [ "$i" -gt 60 ]; then
+        log "ERROR: Vault unreachable or token invalid at ${VAULT_ADDR}"
+        exit 1
+      fi
+      log "waiting for Vault / token ($i)..."
+      sleep 5
+    done
+
+    log "Enabling SSH secrets engine at mount=${MOUNT} (idempotent)"
+    vault secrets enable -path="${MOUNT}" ssh 2>/dev/null || log "(mount may already exist — continuing)"
+
+    if ! vault read "${MOUNT}/config/ca" >/dev/null 2>&1; then
+      log "Generating CA key inside Vault"
+      vault write -f "${MOUNT}/config/ca" generate_signing_key=true
+    else
+      log "SSH CA already present — skipping generate_signing_key"
+    fi
+
+    log "Writing signing role ${SIGN_ROLE}"
+    # Vault CLI cannot pass map fields via key=value; use JSON body via stdin.
+    # Note: no `ttl` is set — every client (RAP) is expected to pass its own
+    # `ttl` in the sign request (see signer.go). `max_ttl` is the ceiling that
+    # Vault enforces regardless of what the client asks for.
+    ROLE_JSON=$(cat <<EOF
+    {
+      "key_type": "ca",
+      "max_ttl": "${CERT_MAX_TTL}",
+      "allow_user_certificates": true,
+      "allowed_users": "${ALLOWED_USERS}",
+      "default_extensions": {"permit-pty": ""},
+      "allowed_extensions": "permit-pty"
+    }
+    EOF
+    )
+    printf '%s' "${ROLE_JSON}" | vault write "${MOUNT}/roles/${SIGN_ROLE}" -
+
+    MOUNT_TRIM="${MOUNT#/}"
+    MOUNT_TRIM="${MOUNT_TRIM%/}"
+
+    {{- if .Values.rapKubernetesAuth.enabled }}
+    POLICY="{{ .Values.rapKubernetesAuth.policyName }}"
+    K8S_ROLE="{{ .Values.rapKubernetesAuth.vaultAuthRoleName }}"
+    SA_NAME="{{ .Values.rapKubernetesAuth.serviceAccountName }}"
+    SA_NS="{{ include "vault-ssh-secrets-engine.saNamespace" . }}"
+
+    if ! vault auth list 2>/dev/null | grep -q '^kubernetes/'; then
+      log "ERROR: auth/kubernetes is not enabled — configure it (platform) before RAP kubernetes auth"
+      exit 1
+    fi
+
+    POLICY_PATH="${MOUNT_TRIM}/sign/${SIGN_ROLE}"
+    log "Writing policy ${POLICY} (sign only on ${POLICY_PATH})"
+    {
+      printf 'path "%s" {\n' "${POLICY_PATH}"
+      printf '  capabilities = ["create", "update"]\n'
+      printf '}\n'
+    } | vault policy write "$POLICY" -
+
+    log "Writing auth/kubernetes/role/${K8S_ROLE} (SA ${SA_NAME} in ns ${SA_NS})"
+    vault write "auth/kubernetes/role/${K8S_ROLE}" \
+      bound_service_account_names="$SA_NAME" \
+      bound_service_account_namespaces="$SA_NS" \
+      policies="$POLICY" \
+      ttl=1h
+    {{- else }}
+    log "Skipping RAP kubernetes auth registration (rapKubernetesAuth.enabled=false)"
+    {{- end }}
+
+    {{- if .Values.onboardingManagerKubernetesAuth.enabled }}
+    OM_POLICY="{{ .Values.onboardingManagerKubernetesAuth.policyName }}"
+    OM_K8S_ROLE="{{ .Values.onboardingManagerKubernetesAuth.vaultAuthRoleName }}"
+    OM_SA_NAME="{{ .Values.onboardingManagerKubernetesAuth.serviceAccountName }}"
+    OM_SA_NS="{{ include "vault-ssh-secrets-engine.omSaNamespace" . }}"
+
+    if ! vault auth list 2>/dev/null | grep -q '^kubernetes/'; then
+      log "ERROR: auth/kubernetes is not enabled — configure it (platform) before OM kubernetes auth"
+      exit 1
+    fi
+
+    OM_CA_PATH="${MOUNT_TRIM}/config/ca"
+    log "Writing policy ${OM_POLICY} (read only on ${OM_CA_PATH})"
+    {
+      printf 'path "%s" {\n' "${OM_CA_PATH}"
+      printf '  capabilities = ["read"]\n'
+      printf '}\n'
+    } | vault policy write "$OM_POLICY" -
+
+    log "Writing auth/kubernetes/role/${OM_K8S_ROLE} (SA ${OM_SA_NAME} in ns ${OM_SA_NS})"
+    vault write "auth/kubernetes/role/${OM_K8S_ROLE}" \
+      bound_service_account_names="$OM_SA_NAME" \
+      bound_service_account_namespaces="$OM_SA_NS" \
+      policies="$OM_POLICY" \
+      ttl=15m
+    {{- else }}
+    log "Skipping OM kubernetes auth registration (onboardingManagerKubernetesAuth.enabled=false)"
+    {{- end }}
+
+    log "Vault SSH engine bootstrap finished."
+{{- end }}

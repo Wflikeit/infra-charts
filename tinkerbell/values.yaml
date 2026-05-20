@@ -9,6 +9,8 @@ global:
     name: null
     imagePullSecrets:
       - name: ""
+  # https for production; set to http (with ingress port 80) when iPXE HTTPS verification fails (e.g. lab/KIND).
+  tinkerbellArtifactScheme: https
 
 # -- traefikReverseProxy defines params for external access to services in a cluster using Traefik reverse proxy.
 traefikReverseProxy:

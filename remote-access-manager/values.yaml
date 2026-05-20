@@ -54,6 +54,7 @@ service:
   type: ClusterIP
   rmtaccessmgr:
     name: ram-api
+    # Service.port == containerPort == -serverAddress (Traefik routes to .port).
     port: 50008
 
 metrics:
@@ -65,8 +66,6 @@ inventory:
   port: 50051
 
 rmtaccessmgr:
-  enableTracing: false
-  traceURL: "fluent-bit:4318"
   oamservaddr: "0.0.0.0:2379"
 
 # Sets requests/limits to support at least 100 edge nodes.
@@ -114,7 +113,7 @@ traefikReverseProxy:
 traefikApiGroup: "traefik.containo.us/v1alpha1"
 
 oidc:
-  oidc_server_url: "http://platform-keycloak.orch-platform/realms/master"
+  oidc_server_url: "http://platform-keycloak.orch-platform.svc/realms/master"
   oidc_tls_insecure_skip_verify_value: "true"
   clients:
     # REST clients should set the "User-Agent" header to be the client name.
@@ -122,5 +121,6 @@ oidc:
 
 serviceArgs:
   enableAuth: true
+  enableTracing: false
   invCacheUuidEnable: true
   invCacheStaleTimeout: 10m

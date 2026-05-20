@@ -68,8 +68,6 @@ inventory:
   port: 50051
 
 rmtAccessproxy:
-  enableTracing: false
-  traceURL: "fluent-bit:4318"
   oamservaddr: "0.0.0.0:2379"
 
 # Sets requests/limits to support at least 100 edge nodes.
@@ -119,12 +117,17 @@ traefikReverseProxy:
 traefikApiGroup: "traefik.containo.us/v1alpha1"
 
 oidc:
-  oidc_server_url: "http://platform-keycloak.orch-platform/realms/master"
+  oidc_server_url: "http://platform-keycloak.orch-platform.svc/realms/master"
   oidc_tls_insecure_skip_verify_value: "true"
   clients:
     # REST clients should set the "User-Agent" header to be the client name.
     bypass:
 
 serviceArgs:
+  enableTracing: false
   invCacheUuidEnable: true
   invCacheStaleTimeout: 10m
+
+# Vault SSH bootstrap is on onboarding-manager; RAP /term uses in-binary defaults (vaultEnv()).
+vaultSshEngine:
+  enabled: false

@@ -70,12 +70,9 @@ spec:
             failureThreshold: 3
           {{- end }}
           args:
+          - -serverAddress=0.0.0.0:{{ .Values.service.rmtaccessmgr.port }}
           - -inventoryAddress={{ .Values.inventory.addr }}:{{ .Values.inventory.port }}
           - -oamServerAddress={{ .Values.rmtaccessmgr.oamservaddr }}
-          {{- if .Values.rmtaccessmgr.enableTracing }}
-          - -enableTracing={{ .Values.rmtaccessmgr.enableTracing }}
-          - -traceURL={{ .Values.rmtaccessmgr.traceURL }}
-          {{- end }}
           {{- if .Values.globalLogLevel }}
           - -globalLogLevel={{ .Values.globalLogLevel }}
           {{- end}}

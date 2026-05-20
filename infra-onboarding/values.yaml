@@ -6,6 +6,11 @@
 # Declare variables to be passed into your templates.
 ---
 
+# KIND/lab: iPXE often fails HTTPS to tink artifacts; infra-config uses this for provisioningServerURL.
+# Override with global.tinkerbellArtifactScheme: https for production.
+global:
+  tinkerbellArtifactScheme: http
+
 # This is to enable the dependencies.
 # All dependencies are enabled by default.
 import:
@@ -32,4 +37,26 @@ import:
 
 # tinkerbell:
 
-# onboarding-manager:
+onboarding-manager:
+  image:
+    # Pull onboarding-manager from our Docker Hub namespace.
+    # Final image resolves to: wflikeit/infra/onboardingmgr:<appVersion|tag>
+    registry:
+      name: wflikeit/
+    # Override to use our fork with Installer + 99_infra.cfg fixes (resilient remote-access-agent install)
+    tag: "1.39.4-dev"
+  # vault-ssh-secrets-engine subchart: SSH engine bootstrap via vault-bootstrap-token (orch-platform).
+  env:
+    rapVaultK8sAuthRole: "onboarding-manager"
+
+# Lab infra-config: HTTP Tinkerbell artifacts + hostnames matching Traefik *.kind.internal routes.
+infra-config:
+  config:
+    enAgentManifestTag: "1.4.11"
+    embImageUrl: files-edge-orch/repository/microvisor/uos/emb_uos_x86_64_20251113.tar.gz
+    netIp: dynamic
+    ntpServer: corp.intel.com,ntp1.server.org,time.google.com
+    provisioningSvc: tinkerbell-nginx.kind.internal
+    tinkerSvc: tinkerbell-server.kind.internal
+    omSvc: onboarding-node.kind.internal
+    omStreamSvc: onboarding-stream.kind.internal

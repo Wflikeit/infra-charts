@@ -79,7 +79,7 @@ spec:
             - -http-addr={{ printf "%v:%v" .Values.http.ip .Values.http.port }}
             - -http-ipxe-binary-enabled={{ .Values.http.ipxeBinaryEnabled }}
             - -http-ipxe-script-enabled={{ .Values.http.ipxeScriptEnabled }}
-            - -osie-url={{  printf "https://%v/tink-stack" .Values.traefikReverseProxy.nginxDnsname }}
+            - -osie-url={{  printf "%s://%v/tink-stack" (.Values.global.tinkerbellArtifactScheme | default "https") .Values.traefikReverseProxy.nginxDnsname }}
             - -tink-server={{ printf "%v:%v" .Values.http.tinkServer.ip .Values.http.tinkServer.port }}
             - -tink-server-tls={{ .Values.http.tinkServer.tls }}
             - -trusted-proxies={{ ( join "," .Values.trustedProxies ) }}

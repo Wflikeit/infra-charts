@@ -76,9 +76,9 @@ spec:
         env:
           - name: DOWNLOAD_URL
             {{ if .Values.traefikReverseProxy.enabled }}
-            value: {{  printf "https://%v/tink-stack" .Values.traefikReverseProxy.nginxDnsname | quote }}
+            value: {{  printf "%s://%v/tink-stack" (.Values.global.tinkerbellArtifactScheme | default "https") .Values.traefikReverseProxy.nginxDnsname | quote }}
             {{ else }}
-            value: {{  printf "https://%v/tink-stack" .Values.loadBalancerIP | quote }}
+            value: {{  printf "%s://%v/tink-stack" (.Values.global.tinkerbellArtifactScheme | default "https") .Values.loadBalancerIP | quote }}
             {{ end }}
           - name: GRPC_AUTHORITY
             value: {{ printf "%s:%v" .Values.stack.tinkServer.ip .Values.stack.tinkServer.port | quote }}

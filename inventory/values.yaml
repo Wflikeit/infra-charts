@@ -16,7 +16,7 @@ replicaCount: 1
 
 image:
   repository: infra/inventory
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # Image specific takes precedence
   # registry:
   #   name: null

@@ -1,0 +1,25 @@
+1. Provide a Vault token (bootstrap / admin) before the hook Job can succeed:
+   - Recommended: create a Secret in the release namespace, e.g.
+     kubectl -n <release-namespace> create secret generic vault-bootstrap-token \
+         --from-literal=token=<vault-token>
+   - Lab/CI only: set bootstrap.tokenSecret.create=true and bootstrap.tokenSecret.vaultToken
+     (never commit real tokens to git).
+
+2. Parent chart values (onboarding-manager / infra-onboarding):
+     vaultSshEngine:
+       enabled: true
+       bootstrap:
+         tokenSecret:
+           name: vault-bootstrap-token
+           namespace: orch-platform   # lab: token lives in platform ns
+           key: token
+
+3. Install / upgrade. A post-install Job enables the SSH secrets engine, creates the CA
+   if missing, writes the signing role, and registers kubernetes auth + policy for
+   onboarding-manager (read <mount>/config/ca) and rap-ssh-sign (sign for RAP /term).
+
+4. Export the CA public key for edge nodes (TrustedUserCAKeys), e.g. with vault CLI:
+     vault read -field=public_key ssh-client-signer/config/ca
+
+RAP does not need VAULT_* env in the pod; it uses in-binary defaults. OM fetches the CA
+via role onboarding-manager (not orch-svc).

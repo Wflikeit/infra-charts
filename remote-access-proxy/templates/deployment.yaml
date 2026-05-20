@@ -75,10 +75,6 @@ spec:
           args:
           - -inventoryAddress={{ .Values.inventory.addr }}:{{ .Values.inventory.port }}
           - -oamServerAddress={{ .Values.rmtAccessproxy.oamservaddr }}
-          {{- if .Values.rmtAccessproxy.enableTracing }}
-          - -enableTracing={{ .Values.rmtAccessproxy.enableTracing }}
-          - -traceURL={{ .Values.rmtAccessproxy.traceURL }}
-          {{- end }}
           {{- if .Values.globalLogLevel }}
           - -globalLogLevel={{ .Values.globalLogLevel }}
           {{- end}}
