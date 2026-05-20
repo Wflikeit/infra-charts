@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+---
+# HashiCorp Vault API address (must be reachable from the hook Job pod).
+vault:
+  address: "http://vault.orch-platform.svc.cluster.local:8200"
+  # Set true when using https:// with a private CA / lab certs.
+  skipTLSVerify: false
+
+image:
+  repository: hashicorp/vault
+  tag: "1.20.4"
+  pullPolicy: IfNotPresent
+
+# SSH secrets engine mount + signing role (must match RAP flags VAULT_SSH_MOUNT / VAULT_SSH_SIGN_ROLE).
+# Certificates are ephemeral and consumed exactly once per `/term` request:
+# RAP mints a fresh in-memory ed25519 key pair, asks Vault to sign it with an
+# explicit `ttl=5m` (see infra-managers/remote-access-proxy/internal/vaultssh/
+# signer.go), and discards both once the SSH handshake to the edge node
+# completes. `certMaxTtl` below is the Vault-side ceiling — a defense-in-depth
+# bound: even if RAP code regressed and asked for a longer TTL, Vault would
+# clamp it to this value. Tighten it further in production if desired.
+ssh:
+  mount: ssh-client-signer
+  signRole: rap-term
+  certMaxTtl: 15m
+  # Tighten in production (Vault role allowed_users); "*" matches lab bootstrap scripts.
+  allowedUsers: "*"
+
+# Requires a Kubernetes Secret with a Vault token that can:
+#   - enable secrets engines (sys/mounts),
+#   - write SSH engine config + roles,
+#   - and (if rapKubernetesAuth.enabled) write sys/policy + auth/kubernetes/role.
+# Platform teams often materialize this once (e.g. wrapped token, SealedSecret).
+# If create=true, Helm renders a pre-install Secret from vaultToken (lab/CI only — do not commit real tokens).
+bootstrap:
+  tokenSecret:
+    create: false
+    name: ""
+    # When the token Secret lives in another namespace (lab: vault-bootstrap-token in orch-platform).
+    namespace: ""
+    key: "token"
+    vaultToken: ""
+    annotations: {}
+
+# After the SSH engine exists, register a narrow Vault policy + kubernetes auth role
+# so RAP pods can call POST .../sign/<role> only.
+rapKubernetesAuth:
+  enabled: true
+  policyName: rap-ssh-sign
+  vaultAuthRoleName: remote-access-proxy
+  serviceAccountName: remote-access-proxy
+  serviceAccountNamespace: ""
+
+# Narrow Vault policy + kubernetes auth role so onboarding-manager can read
+# only the SSH CA public key (<mount>/config/ca). The role is bound to the
+# Kubernetes ServiceAccount `orch-svc` in `orch-infra` (the same SA the OM pod
+# already uses for its other Vault access via role `orch-svc`). Isolation is
+# enforced at the Vault **policy** layer: Vault K8s auth allows one SA to
+# authenticate against multiple roles explicitly by name, and OM picks this
+# role (`RAP_VAULT_K8S_AUTH_ROLE=onboarding-manager`) only for the SSH CA read.
+onboardingManagerKubernetesAuth:
+  enabled: true
+  policyName: onboarding-manager
+  vaultAuthRoleName: onboarding-manager
+  serviceAccountName: orch-svc
+  serviceAccountNamespace: "orch-infra"
+
+# Pod scheduling (hook Job).
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 100
+  seccompProfile:
+    type: RuntimeDefault
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault

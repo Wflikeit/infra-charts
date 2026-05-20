@@ -1,0 +1,6 @@
+dependencies:
+- name: vault-ssh-secrets-engine
+  repository: file://../vault-ssh-secrets-engine
+  version: 0.2.0
+digest: sha256:5fe0f072acd80873c013a32cada986fc279b9c7391e1319407de10542eaaa651
+generated: "2026-04-22T17:35:38.971428021Z"

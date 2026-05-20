@@ -34,6 +34,44 @@ spec:
       {{- if .Values.serviceAccount.enabled }}
       serviceAccountName:  {{ .Values.serviceAccount.name }}
       {{- end }}
+      {{- $interval := max 1 (int (default 5 .Values.vaultSshEngineWait.intervalSeconds)) }}
+      {{- $timeout := max 5 (int (default 1200 .Values.vaultSshEngineWait.timeoutSeconds)) }}
+      {{- $maxIter := max 1 (div $timeout $interval) }}
+      {{- $mount := .Values.env.rapVaultSshMount | default "ssh-client-signer" | trimAll "/" }}
+      {{- $authRole := .Values.env.rapVaultK8sAuthRole | default "onboarding-manager" }}
+      {{- $jwtPath := .Values.env.rapVaultK8sJwtPath | default "/var/run/secrets/kubernetes.io/serviceaccount/token" }}
+      initContainers:
+        - name: wait-vault-ssh-engine
+          securityContext:
+            {{- toYaml .Values.vaultSshEngineWait.securityContext | nindent 12 }}
+          image: "{{ .Values.vaultSshEngineWait.image.repository }}:{{ .Values.vaultSshEngineWait.image.tag }}"
+          imagePullPolicy: {{ .Values.vaultSshEngineWait.image.pullPolicy }}
+          command: ["/bin/sh", "/scripts/wait.sh"]
+          resources:
+            {{- toYaml .Values.vaultSshEngineWait.resources | nindent 12 }}
+          env:
+            - name: VAULT_ADDR
+              value: {{ .Values.env.vaultUrl | quote }}
+            - name: VAULT_SSH_MOUNT
+              value: {{ $mount | quote }}
+            - name: VAULT_K8S_AUTH_ROLE
+              value: {{ $authRole | quote }}
+            - name: VAULT_K8S_JWT_PATH
+              value: {{ $jwtPath | quote }}
+            - name: MAX_ITER
+              value: {{ $maxIter | quote }}
+            - name: SLEEP_SECS
+              value: {{ $interval | quote }}
+            {{- if .Values.vaultSshEngineWait.vault.skipTLSVerify }}
+            - name: VAULT_SKIP_VERIFY
+              value: "true"
+            {{- end }}
+          volumeMounts:
+            - name: vault-ssh-engine-wait-script
+              mountPath: /scripts
+              readOnly: true
+            - name: vault-ssh-engine-wait-tmp
+              mountPath: /tmp
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -131,6 +169,20 @@ spec:
           {{- end }}
           - name: RSPROXY_ADDRESS
             value: "{{ .Values.env.rsProxyRegistryAddress }}"
+          {{- if .Values.env.rapVaultSshCaPublicKey }}
+          - name: RAP_VAULT_SSH_CA_PUBLIC_KEY
+            value: {{ .Values.env.rapVaultSshCaPublicKey | quote }}
+          {{- end }}
+          {{- if .Values.env.rapVaultSshMount }}
+          - name: RAP_VAULT_SSH_MOUNT
+            value: {{ .Values.env.rapVaultSshMount | quote }}
+          {{- end }}
+          - name: RAP_VAULT_K8S_AUTH_ROLE
+            value: {{ .Values.env.rapVaultK8sAuthRole | default "onboarding-manager" | quote }}
+          {{- if .Values.env.rapVaultK8sJwtPath }}
+          - name: RAP_VAULT_K8S_JWT_PATH
+            value: {{ .Values.env.rapVaultK8sJwtPath | quote }}
+          {{- end }}
           ports:
             - name: grpc-port
               containerPort: {{ .Values.service.onboardingmgr.port }}
@@ -151,6 +203,12 @@ spec:
           secret:
             secretName: {{ .Values.certs.secretNameOrchCaCert }}
             optional: true
+        - name: vault-ssh-engine-wait-script
+          configMap:
+            name: {{ include "onboarding-manager.fullname" . }}-vault-ssh-engine-wait
+            defaultMode: 0555
+        - name: vault-ssh-engine-wait-tmp
+          emptyDir: {}
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

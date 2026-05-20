@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+# Optional: satisfies Kyverno "require-any-middleware" without JWT for lab gRPC to RAM.
+# Enable with traefikReverseProxy.labNoJwtMiddleware: true (do not use in production).
+{{- if and .Values.traefikReverseProxy.enabled .Values.traefikReverseProxy.labNoJwtMiddleware }}
+apiVersion: {{ .Values.traefikApiGroup }}
+kind: Middleware
+metadata:
+  name: rmtaccessmgr-lab-noop-headers
+  namespace: {{ .Values.traefikReverseProxy.gatewayNamespace }}
+  labels:
+    {{- include "remote-access-manager.labels" . | nindent 4 }}
+spec:
+  headers:
+    customRequestHeaders:
+      X-Lab-Ram-Grpc: "1"
+{{- end }}

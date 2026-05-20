@@ -8,4 +8,4 @@ metadata:
 data:
   config.yaml: |
     {{- toYaml .Values.config | nindent 4 }} 
-    provisioningServerURL: https://{{ .Values.config.provisioningSvc }}/tink-stack
+    provisioningServerURL: {{ .Values.global.tinkerbellArtifactScheme | default "https" }}://{{ .Values.config.provisioningSvc }}/tink-stack

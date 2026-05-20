@@ -82,10 +82,23 @@ env:
   # rsProxyRegistryAddress specifies the Release Service proxy address
   # It is defined and loaded as an env variable in the pod container.
   rsProxyRegistryAddress: "rs-proxy.orch-platform.svc.cluster.local:8081/"
+  # Optional overrides (omit keys to use code defaults: mount ssh-client-signer).
+  # rapVaultSshCaPublicKey: ""
+  # rapVaultSshMount: ""
+  rapVaultK8sAuthRole: "onboarding-manager"
+  # rapVaultK8sJwtPath: ""
 
 serviceAccount:
+  # OM keeps running as the shared "orch-svc" ServiceAccount. Isolation of the
+  # SSH CA read from the broad `orch-svc` Vault policy is enforced at the Vault
+  # policy layer via a dedicated K8s-auth role `onboarding-manager` provisioned
+  # by the vault-ssh-secrets-engine chart (see its
+  # `onboardingManagerKubernetesAuth` block). No dedicated Kubernetes SA is
+  # created by this chart; `create: false` is set explicitly.
   enabled: true
+  create: false
   name: orch-svc
+  annotations: {}
 clusterRoleName: onboarding-mgr-cluster-role
 clusterRoleBindingName: onboarding-mgr-cluster-role-binding
 
@@ -135,3 +148,67 @@ multiTenancy:
 
 certs:
   secretNameOrchCaCert: gateway-ca-cert
+
+# Bootstrap Vault SSH secrets engine in the same release as onboarding-manager (always included).
+# Requires bootstrap.tokenSecret with a Vault token that can enable the engine — same pattern as remote-access-proxy.
+# Idempotent with a separate RAP release that also ships this subchart.
+vaultSshEngine:
+  vault:
+    address: "http://vault.orch-platform.svc.cluster.local:8200"
+    skipTLSVerify: false
+  ssh:
+    mount: ssh-client-signer
+    signRole: rap-term
+    certMaxTtl: 15m
+    allowedUsers: "*"
+  bootstrap:
+    tokenSecret:
+      create: false
+      # Lab: platform chart materializes vault-bootstrap-token in orch-platform.
+      name: vault-bootstrap-token
+      namespace: orch-platform
+      key: token
+      vaultToken: ""
+      annotations: {}
+  rapKubernetesAuth:
+    enabled: true
+    policyName: rap-ssh-sign
+    vaultAuthRoleName: remote-access-proxy
+    serviceAccountName: remote-access-proxy
+    serviceAccountNamespace: ""
+  onboardingManagerKubernetesAuth:
+    enabled: true
+    policyName: onboarding-manager
+    vaultAuthRoleName: onboarding-manager
+    serviceAccountName: orch-svc
+    serviceAccountNamespace: "orch-infra"
+
+# Init container: always runs; blocks the pod until Vault exposes the SSH CA at <mount>/config/ca
+# (kubernetes auth as the onboarding-manager service account, same as dynamic CA fetch in OM).
+vaultSshEngineWait:
+  image:
+    repository: hashicorp/vault
+    tag: "1.20.4"
+    pullPolicy: IfNotPresent
+  intervalSeconds: 5
+  timeoutSeconds: 1200
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 100
+    seccompProfile:
+      type: RuntimeDefault
+  # Match env.vaultUrl TLS settings when using https:// with a private CA.
+  vault:
+    skipTLSVerify: false

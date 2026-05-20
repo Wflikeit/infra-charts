@@ -2,17 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 apiVersion: v2
-name: onboarding-manager
-description: Edge Infrastructure Manager Onboarding Manager
+name: remote-access-proxy
+description: Edge Infrastructure Manager Remote Access Proxy
 type: application
-version: 1.41.0
-appVersion: "1.39.0"
-annotations: {}
+version: 0.0.1-dev
+appVersion: "0.0.5"
 home: edge-orchestrator.intel.com
 maintainers:
   - name: Edge Infrastructure Manager Team
 dependencies:
   - name: vault-ssh-secrets-engine
-    version: 0.2.0
+    version: 0.1.0
     repository: "file://../vault-ssh-secrets-engine"
+    condition: vaultSshEngine.enabled
     alias: vaultSshEngine
